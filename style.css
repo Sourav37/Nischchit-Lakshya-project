@@ -807,6 +807,7 @@ html[data-theme="light"] .moon-icon {
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--text-primary);
+    word-spacing: 4px;
 }
 
 .v-text span {
@@ -2431,6 +2432,7 @@ font-size: 0.9rem;
     .floating-whatsapp-btn span {
         display: none;
     }
+
     .floating-whatsapp-btn {
         padding: 14px;
         border-radius: 50%;

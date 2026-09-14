@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggleBtn.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            
+
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('nischchit_lakshya_theme', newTheme);
         });
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 setTimeout(() => {
                     submitBtn.innerHTML = '<span>REGISTRATION READY</span> ✓';
-                    
+
                     // Call Isolated Payment Gateway Integration Function
                     proceedToPayment(formData);
 
@@ -234,60 +234,405 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       6. LIVE COUNTDOWN TIMER (TARGET: UPCOMING MONDAY AT 10:00 AM)
+       6. DYNAMIC WORKSHOP SCHEDULE & LIVE COUNTDOWN TIMER
+       ==========================================================================
+       Developers: To change the workshop schedule at any time, you can:
+         1. Modify default values in WORKSHOP_CONFIG below, OR
+         2. Call window.setWorkshopTime('08:09 PM') in code/console, OR
+         3. Call window.setWorkshopTime({ day: 'Monday', time: '08:09 PM', timezone: 'IST' })
+         
+       All matching UI elements (Hero card, Floating pill, Details section)
+       and the live countdown timer will automatically recalculate and update!
        ========================================================================== */
-    function initCountdownTimer() {
-        function getTargetDate() {
-            const now = new Date();
-            const target = new Date(now);
-            target.setHours(10, 0, 0, 0);
 
-            const day = now.getDay(); // 0: Sun, 1: Mon, ..., 4: Thu, 5: Fri, 6: Sat
-            let daysToAdd = (1 + 7 - day) % 7;
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-            // If today is Monday and past 10am, target next Monday
-            if (day === 1 && now >= target) {
-                daysToAdd = 7;
-            } else if (daysToAdd === 0 && day !== 1) {
-                daysToAdd = 7;
-            }
+    const WORKSHOP_CONFIG = {
+        // Target recurring day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+        dayOfWeek: 1,
+        dayName: 'Monday',
+        dayShort: 'Mon',
 
-            target.setDate(now.getDate() + daysToAdd);
-            return target;
+        // Workshop Start Time (supports '08:09 PM', '8:09 PM', '20:09', '10:00 AM')
+        time: '08:09 PM',
+
+        // Timezone label for display
+        timezone: 'IST',
+
+        // Optional: Specific fixed ISO date/time (e.g. '2026-09-21T20:09:00+05:30').
+        // If null, it dynamically targets the upcoming recurring day & time.
+        fixedDate: null,
+
+        // Optional: Custom text for the workshop date card (e.g. 'Upcoming Batch' or '21 Sep 2026')
+        dateDisplay: null,
+
+        // Template for hero subtitle
+        countdownSubtitleText: 'Next Live Batch Starts {day} at {time}'
+    };
+
+    /**
+     * Parses 12-hour or 24-hour time string into structured hours/minutes and display format
+     */
+    function parseTimeString(timeStr) {
+        if (!timeStr || typeof timeStr !== 'string') {
+            return { hours: 20, minutes: 9, display12: '08:09 PM', display24: '20:09' };
+        }
+        const trimmed = timeStr.trim();
+        const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+        if (!match) {
+            return { hours: 20, minutes: 9, display12: trimmed, display24: trimmed };
+        }
+        let h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        const ampm = match[4] ? match[4].toUpperCase() : null;
+
+        if (ampm) {
+            if (ampm === 'PM' && h < 12) h += 12;
+            if (ampm === 'AM' && h === 12) h = 0;
         }
 
-        const targetDate = getTargetDate();
+        const displayHours = h % 12 === 0 ? 12 : h % 12;
+        const period = h >= 12 ? 'PM' : 'AM';
+        const pad = (n) => String(n).padStart(2, '0');
 
-        function updateTimer() {
-            const now = new Date().getTime();
-            const distance = targetDate.getTime() - now;
-
-            if (distance <= 0) {
-                document.querySelectorAll('.timer-days').forEach(el => el.textContent = '00');
-                document.querySelectorAll('.timer-hours').forEach(el => el.textContent = '00');
-                document.querySelectorAll('.timer-minutes').forEach(el => el.textContent = '00');
-                document.querySelectorAll('.timer-seconds').forEach(el => el.textContent = '00');
-                return;
-            }
-
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            const pad = (n) => n < 10 ? '0' + n : n;
-
-            document.querySelectorAll('.timer-days').forEach(el => el.textContent = pad(days));
-            document.querySelectorAll('.timer-hours').forEach(el => el.textContent = pad(hours));
-            document.querySelectorAll('.timer-minutes').forEach(el => el.textContent = pad(minutes));
-            document.querySelectorAll('.timer-seconds').forEach(el => el.textContent = pad(seconds));
-        }
-
-        updateTimer();
-        setInterval(updateTimer, 1000);
+        return {
+            hours: h,
+            minutes: m,
+            display12: `${pad(displayHours)}:${pad(m)} ${period}`,
+            display24: `${pad(h)}:${pad(m)}`
+        };
     }
 
+    /**
+     * Parses day input (number 0-6 or string 'Monday', 'Mon', etc.)
+     */
+    function parseDay(dayInput) {
+        if (typeof dayInput === 'number' && dayInput >= 0 && dayInput <= 6) {
+            return {
+                index: dayInput,
+                name: DAYS[dayInput],
+                short: DAYS_SHORT[dayInput]
+            };
+        }
+        if (typeof dayInput === 'string') {
+            const lower = dayInput.trim().toLowerCase();
+            const foundIndex = DAYS.findIndex(d => d.toLowerCase().startsWith(lower.slice(0, 3)));
+            if (foundIndex !== -1) {
+                return {
+                    index: foundIndex,
+                    name: DAYS[foundIndex],
+                    short: DAYS_SHORT[foundIndex]
+                };
+            }
+        }
+        return { index: 1, name: 'Monday', short: 'Mon' };
+    }
+
+    /**
+     * Calculates the target Date object based on WORKSHOP_CONFIG
+     */
+    function getWorkshopTargetDate() {
+        if (WORKSHOP_CONFIG.fixedDate) {
+            const fixed = new Date(WORKSHOP_CONFIG.fixedDate);
+            if (!isNaN(fixed.getTime())) {
+                return fixed;
+            }
+        }
+
+        const now = new Date();
+        const target = new Date(now);
+        const parsed = parseTimeString(WORKSHOP_CONFIG.time);
+        target.setHours(parsed.hours, parsed.minutes, 0, 0);
+
+        const targetDay = typeof WORKSHOP_CONFIG.dayOfWeek === 'number' ? WORKSHOP_CONFIG.dayOfWeek : 1;
+        const currentDay = now.getDay();
+        let daysToAdd = (targetDay - currentDay + 7) % 7;
+
+        // If today is the scheduled day and the workshop time has already passed today, roll over to next week
+        if (daysToAdd === 0 && now.getTime() >= target.getTime()) {
+            daysToAdd = 7;
+        }
+
+        target.setDate(now.getDate() + daysToAdd);
+        return target;
+    }
+
+    /**
+     * Synchronously updates all workshop schedule text elements in the DOM
+     */
+    function updateWorkshopDisplay() {
+        const parsedTime = parseTimeString(WORKSHOP_CONFIG.time);
+        const dayInfo = parseDay(WORKSHOP_CONFIG.dayOfWeek);
+        const displayTime = parsedTime.display12;
+        const timezone = WORKSHOP_CONFIG.timezone || 'IST';
+
+        // 1. Floating timer widget pill (e.g. "Mon 08:09 PM")
+        const floatingTimeEls = document.querySelectorAll('#floating-timer-time, [data-workshop-floating-time], .floating-timer-widget .f-timer-head span');
+        floatingTimeEls.forEach(el => {
+            el.textContent = `${dayInfo.short} ${displayTime}`;
+        });
+
+        // 2. Hero countdown subtitle (e.g. "Next Live Batch Starts Monday at 08:09 PM")
+        const subtitleEls = document.querySelectorAll('#hero-countdown-subtitle, [data-workshop-countdown-subtitle], .countdown-subtitle');
+        const subtitleTpl = WORKSHOP_CONFIG.countdownSubtitleText || 'Next Live Batch Starts {day} at {time}';
+        const formattedSubtitle = subtitleTpl
+            .replace('{day}', dayInfo.name)
+            .replace('{shortDay}', dayInfo.short)
+            .replace('{time}', displayTime)
+            .replace('{timezone}', timezone);
+
+        subtitleEls.forEach(el => {
+            el.textContent = formattedSubtitle;
+        });
+
+        // 3. Workshop detail TIME card (e.g. "08:09 PM IST")
+        let timeCardFound = false;
+        const detailTimeEls = document.querySelectorAll('#workshop-detail-time, [data-workshop-time]');
+        if (detailTimeEls.length > 0) {
+            detailTimeEls.forEach(el => {
+                el.textContent = `${displayTime} ${timezone}`.trim();
+            });
+            timeCardFound = true;
+        }
+
+        if (!timeCardFound) {
+            document.querySelectorAll('.detail-card').forEach(card => {
+                const label = card.querySelector('.d-label');
+                const value = card.querySelector('.d-value');
+                if (label && label.textContent.trim().toUpperCase() === 'TIME' && value) {
+                    value.textContent = `${displayTime} ${timezone}`.trim();
+                }
+            });
+        }
+
+        // 4. Workshop detail DATE card (if configured)
+        if (WORKSHOP_CONFIG.dateDisplay) {
+            const detailDateEls = document.querySelectorAll('#workshop-detail-date, [data-workshop-date]');
+            detailDateEls.forEach(el => {
+                el.textContent = WORKSHOP_CONFIG.dateDisplay;
+            });
+        }
+    }
+
+    let countdownTimerInterval = null;
+    let currentTargetDate = null;
+
+    function tickTimer() {
+        if (!currentTargetDate) {
+            currentTargetDate = getWorkshopTargetDate();
+        }
+
+        const now = new Date().getTime();
+        let distance = currentTargetDate.getTime() - now;
+
+        // Auto roll-over when target reached (unless a fixed one-off date was specified)
+        if (distance <= 0 && !WORKSHOP_CONFIG.fixedDate) {
+            currentTargetDate = getWorkshopTargetDate();
+            distance = currentTargetDate.getTime() - now;
+        }
+
+        if (distance <= 0) {
+            document.querySelectorAll('.timer-days').forEach(el => el.textContent = '00');
+            document.querySelectorAll('.timer-hours').forEach(el => el.textContent = '00');
+            document.querySelectorAll('.timer-minutes').forEach(el => el.textContent = '00');
+            document.querySelectorAll('.timer-seconds').forEach(el => el.textContent = '00');
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        const pad = (n) => n < 10 ? '0' + n : n;
+
+        document.querySelectorAll('.timer-days').forEach(el => el.textContent = pad(days));
+        document.querySelectorAll('.timer-hours').forEach(el => el.textContent = pad(hours));
+        document.querySelectorAll('.timer-minutes').forEach(el => el.textContent = pad(minutes));
+        document.querySelectorAll('.timer-seconds').forEach(el => el.textContent = pad(seconds));
+    }
+
+    function initCountdownTimer() {
+        currentTargetDate = getWorkshopTargetDate();
+        tickTimer();
+        if (countdownTimerInterval) clearInterval(countdownTimerInterval);
+        countdownTimerInterval = setInterval(tickTimer, 1000);
+    }
+
+    /**
+     * DEVELOPER API: Dynamically change workshop schedule and sync UI + timer immediately
+     *
+     * Usage Examples:
+     *   setWorkshopTime('08:09 PM')
+     *   setWorkshopTime('20:09')
+     *   setWorkshopTime({ time: '07:30 PM', day: 'Saturday' })
+     *   setWorkshopTime({ time: '10:00 AM', dayOfWeek: 1, timezone: 'IST' })
+     *   setWorkshopTime({ fixedDate: '2026-10-01T18:00:00' })
+     *
+     * @param {string|Object} options New time string or config object
+     */
+    function setWorkshopTime(options) {
+        if (typeof options === 'string') {
+            WORKSHOP_CONFIG.time = options;
+        } else if (typeof options === 'object' && options !== null) {
+            if (options.time) WORKSHOP_CONFIG.time = options.time;
+            if (options.day !== undefined) {
+                const dayObj = parseDay(options.day);
+                WORKSHOP_CONFIG.dayOfWeek = dayObj.index;
+                WORKSHOP_CONFIG.dayName = dayObj.name;
+                WORKSHOP_CONFIG.dayShort = dayObj.short;
+            } else if (options.dayOfWeek !== undefined) {
+                const dayObj = parseDay(options.dayOfWeek);
+                WORKSHOP_CONFIG.dayOfWeek = dayObj.index;
+                WORKSHOP_CONFIG.dayName = dayObj.name;
+                WORKSHOP_CONFIG.dayShort = dayObj.short;
+            }
+            if (options.timezone !== undefined) WORKSHOP_CONFIG.timezone = options.timezone;
+            if (options.fixedDate !== undefined) WORKSHOP_CONFIG.fixedDate = options.fixedDate;
+            if (options.dateDisplay !== undefined) WORKSHOP_CONFIG.dateDisplay = options.dateDisplay;
+            if (options.countdownSubtitleText !== undefined) WORKSHOP_CONFIG.countdownSubtitleText = options.countdownSubtitleText;
+        }
+
+        // Keep day names synchronized with dayOfWeek
+        const activeDay = parseDay(WORKSHOP_CONFIG.dayOfWeek);
+        WORKSHOP_CONFIG.dayName = activeDay.name;
+        WORKSHOP_CONFIG.dayShort = activeDay.short;
+
+        // Update UI text across page
+        updateWorkshopDisplay();
+
+        // Recalculate target date and tick countdown immediately
+        currentTargetDate = getWorkshopTargetDate();
+        tickTimer();
+
+        console.log(`[Workshop Config] Updated to: ${WORKSHOP_CONFIG.dayName} at ${WORKSHOP_CONFIG.time} (${WORKSHOP_CONFIG.timezone})`);
+        return {
+            config: WORKSHOP_CONFIG,
+            targetDate: currentTargetDate
+        };
+    }
+
+    /**
+     * Parses key-value pairs from workshoptime.md
+     */
+    function parseMarkdownConfig(markdownText) {
+        const config = {};
+        if (!markdownText) return config;
+        const lines = markdownText.split(/\r?\n/);
+        lines.forEach(line => {
+            const clean = line.replace(/^[\s*\-#>]+/, '').trim();
+            // Ignore numbered items e.g. "1. DATE"
+            if (/^\d+\./.test(clean)) return;
+
+            const colonIdx = clean.indexOf(':');
+            if (colonIdx !== -1) {
+                const rawKey = clean.substring(0, colonIdx).replace(/[^a-zA-Z0-9_]/g, '').trim().toUpperCase();
+                let rawVal = clean.substring(colonIdx + 1).replace(/[*_`]/g, '').trim();
+                rawVal = rawVal.replace(/^["']|["']$/g, '');
+                if (rawKey && rawVal) {
+                    config[rawKey] = rawVal;
+                }
+            }
+        });
+        return config;
+    }
+
+    /**
+     * Applies markdown configuration values to WORKSHOP_CONFIG and updates the UI
+     */
+    function applyScheduleFromConfig(cfg) {
+        if (!cfg) return;
+
+        // 1. Workshop Time
+        if (cfg.TIME) {
+            WORKSHOP_CONFIG.time = cfg.TIME;
+        }
+
+        // 2. Timezone
+        if (cfg.TIMEZONE) {
+            WORKSHOP_CONFIG.timezone = cfg.TIMEZONE;
+        }
+
+        // 3. Custom Countdown Title Template
+        if (cfg.COUNTDOWN_TITLE) {
+            WORKSHOP_CONFIG.countdownSubtitleText = cfg.COUNTDOWN_TITLE;
+        }
+
+        // 4. Future Date Configuration
+        if (cfg.DATE) {
+            const dateMatch = cfg.DATE.trim().match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dateMatch) {
+                const year = parseInt(dateMatch[1], 10);
+                const month = parseInt(dateMatch[2], 10) - 1;
+                const day = parseInt(dateMatch[3], 10);
+                const parsedTime = parseTimeString(WORKSHOP_CONFIG.time);
+
+                const target = new Date(year, month, day, parsedTime.hours, parsedTime.minutes, 0, 0);
+                WORKSHOP_CONFIG.fixedDate = target;
+                WORKSHOP_CONFIG.dayOfWeek = target.getDay();
+                const dayObj = parseDay(target.getDay());
+                WORKSHOP_CONFIG.dayName = dayObj.name;
+                WORKSHOP_CONFIG.dayShort = dayObj.short;
+            } else {
+                const d = new Date(cfg.DATE);
+                if (!isNaN(d.getTime())) {
+                    WORKSHOP_CONFIG.fixedDate = d;
+                    WORKSHOP_CONFIG.dayOfWeek = d.getDay();
+                    const dayObj = parseDay(d.getDay());
+                    WORKSHOP_CONFIG.dayName = dayObj.name;
+                    WORKSHOP_CONFIG.dayShort = dayObj.short;
+                }
+            }
+        } else if (cfg.DAY) {
+            const dayObj = parseDay(cfg.DAY);
+            WORKSHOP_CONFIG.dayOfWeek = dayObj.index;
+            WORKSHOP_CONFIG.dayName = dayObj.name;
+            WORKSHOP_CONFIG.dayShort = dayObj.short;
+        }
+
+        // 5. Date Display Text on Card
+        if (cfg.DATE_DISPLAY) {
+            WORKSHOP_CONFIG.dateDisplay = cfg.DATE_DISPLAY;
+        } else if (cfg.DATE && WORKSHOP_CONFIG.fixedDate) {
+            const d = new Date(WORKSHOP_CONFIG.fixedDate);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            WORKSHOP_CONFIG.dateDisplay = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        updateWorkshopDisplay();
+        currentTargetDate = getWorkshopTargetDate();
+        tickTimer();
+    }
+
+    /**
+     * Asynchronously loads workshoptime.md and applies updates
+     */
+    async function loadWorkshopTimeFromMD() {
+        try {
+            const res = await fetch('workshoptime.md?t=' + Date.now());
+            if (!res.ok) return;
+            const mdText = await res.text();
+            const cfg = parseMarkdownConfig(mdText);
+            applyScheduleFromConfig(cfg);
+            console.log('[Workshop Schedule] Loaded successfully from workshoptime.md:', cfg);
+        } catch (err) {
+            // Silently fall back to built-in WORKSHOP_CONFIG (e.g. if loaded over local file:// protocol)
+            console.info('[Workshop Schedule] Using built-in schedule configuration.');
+        }
+    }
+
+    // Expose globally so developers or other scripts can call it anytime
+    window.setWorkshopTime = setWorkshopTime;
+    window.WORKSHOP_CONFIG = WORKSHOP_CONFIG;
+    window.loadWorkshopTimeFromMD = loadWorkshopTimeFromMD;
+
+    // Initial render and timer startup
+    updateWorkshopDisplay();
     initCountdownTimer();
+
+    // Dynamically load schedule from workshoptime.md
+    loadWorkshopTimeFromMD();
 
 });
 
