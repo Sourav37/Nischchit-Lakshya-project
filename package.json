@@ -1,0 +1,9 @@
+{
+  "name": "nischchit-lakshya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nischchit Lakshya 5-Day Trading Workshop",
+  "dependencies": {
+    "razorpay": "^2.9.4"
+  }
+}

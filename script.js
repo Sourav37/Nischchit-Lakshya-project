@@ -120,45 +120,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const regForm = document.getElementById('registration-form');
 
     if (regForm) {
-        regForm.addEventListener('submit', (e) => {
+
+        regForm.addEventListener('submit', async (e) => {
+
             e.preventDefault();
 
-            if (validateForm()) {
-                const formData = {
-                    fullName: document.getElementById('fullName').value.trim(),
-                    email: document.getElementById('email').value.trim(),
-                    phone: document.getElementById('phone').value.trim(),
-                    tradingExperience: document.getElementById('tradingExperience').value,
-                    learningGoal: document.getElementById('learningGoal').value,
-                    contactMethod: document.querySelector('input[name="contactMethod"]:checked')?.value || 'WhatsApp',
-                    consent: document.getElementById('consent').checked,
-                    timestamp: new Date().toISOString()
-                };
-
-                // Show success state on button momentarily
-                const submitBtn = regForm.querySelector('.btn-submit');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<span>PROCESSING...</span>';
-                submitBtn.disabled = true;
-
-                setTimeout(() => {
-                    submitBtn.innerHTML = '<span>REGISTRATION READY</span> ✓';
-
-                    // Call Isolated Payment Gateway Integration Function
-                    proceedToPayment(formData);
-
-                    setTimeout(() => {
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
-                    }, 3000);
-                }, 600);
+            // Validate form first
+            if (!validateForm()) {
+                return;
             }
+
+            // Collect form data
+            const formData = {
+                fullName: document.getElementById('fullName').value.trim(),
+
+                email: document.getElementById('email').value.trim(),
+
+                phone: document.getElementById('phone').value
+                    .trim()
+                    .replace(/[\s\-+()]/g, ''),
+
+                tradingExperience:
+                    document.getElementById('tradingExperience').value,
+
+                learningGoal:
+                    document.getElementById('learningGoal').value,
+
+                contactMethod:
+                    document.querySelector(
+                        'input[name="contactMethod"]:checked'
+                    )?.value || 'WhatsApp',
+
+                consent:
+                    document.getElementById('consent').checked,
+
+                timestamp:
+                    new Date().toISOString()
+            };
+
+            // Start Razorpay payment flow
+            await proceedToPayment(formData);
         });
 
-        // Clear inline errors on input
+
+        // Clear inline errors on input/change
         const inputs = regForm.querySelectorAll('input, select');
+
         inputs.forEach(input => {
+
             input.addEventListener('input', () => {
+                clearError(input.id);
+            });
+
+            input.addEventListener('change', () => {
                 clearError(input.id);
             });
         });
@@ -645,12 +659,355 @@ document.addEventListener('DOMContentLoaded', () => {
  * 
  * @param {Object} formData Validated user registration details
  */
-function proceedToPayment(formData) {
-    console.log("==========================================");
-    console.log("NISCHCHIT LAKSHYA — REGISTRATION SUCCESSFUL");
-    console.log("Registration Data Ready For Payment Gateway:");
-    console.dir(formData);
-    console.log("==========================================");
+async function proceedToPayment(formData) {
 
-    // RAZORPAY / PAYMENT INTEGRATION WILL BE ADDED HERE
+    const submitBtn =
+        document.getElementById('registration-form')?.querySelector('.btn-submit');
+
+    if (!submitBtn) {
+        console.error('Submit button not found.');
+        return;
+    }
+
+    const originalHTML =
+        submitBtn.innerHTML;
+
+    try {
+
+        // Disable button
+        submitBtn.disabled = true;
+
+        submitBtn.innerHTML =
+            '<span>CREATING SECURE PAYMENT...</span>';
+
+
+        /*
+         * STEP 1
+         * Ask Vercel serverless function
+         * to create Razorpay Order
+         */
+
+        const response = await fetch(
+            '/api/create-order',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify(formData)
+            }
+        );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+                result.message ||
+                'Unable to create payment order.'
+            );
+        }
+
+
+        console.log(
+            'Razorpay order created:',
+            result.order
+        );
+
+
+        /*
+         * STEP 2
+         * Open Razorpay Checkout
+         */
+
+        const options = {
+
+            key: result.keyId,
+
+            amount: result.order.amount,
+
+            currency: result.order.currency,
+
+            name: 'Nischchit Lakshya',
+
+            description:
+                '5-Day Trading Workshop',
+
+            order_id:
+                result.order.id,
+
+
+            /*
+             * Prefill customer details
+             */
+
+            prefill: {
+
+                name:
+                    formData.fullName,
+
+                email:
+                    formData.email,
+
+                contact:
+                    formData.phone
+            },
+
+
+            /*
+             * Additional information
+             */
+
+            notes: {
+
+                tradingExperience:
+                    formData.tradingExperience,
+
+                learningGoal:
+                    formData.learningGoal,
+
+                contactMethod:
+                    formData.contactMethod
+            },
+
+
+            theme: {
+
+                color: '#D4AF37'
+            },
+
+
+            /*
+             * STEP 3
+             * Successful Razorpay Checkout
+             */
+
+            handler: async function (
+                paymentResponse
+            ) {
+
+                console.log(
+                    'Razorpay response:',
+                    paymentResponse
+                );
+
+                await verifyRazorpayPayment(
+                    paymentResponse,
+                    formData
+                );
+            },
+
+
+            /*
+             * User closes Razorpay window
+             */
+
+            modal: {
+
+                ondismiss: function () {
+
+                    console.log(
+                        'Razorpay checkout closed by user.'
+                    );
+
+                    submitBtn.disabled = false;
+
+                    submitBtn.innerHTML =
+                        originalHTML;
+                }
+            }
+        };
+
+
+        const razorpay =
+            new Razorpay(options);
+
+
+        /*
+         * Razorpay payment failure event
+         */
+
+        razorpay.on(
+            'payment.failed',
+            function (response) {
+
+                console.error(
+                    'Razorpay payment failed:',
+                    response.error
+                );
+
+                submitBtn.disabled = false;
+
+                submitBtn.innerHTML =
+                    originalHTML;
+
+                const message =
+                    response.error?.description ||
+                    'Payment failed. Please try again.';
+
+                alert(message);
+            }
+        );
+
+
+        /*
+         * Open Razorpay
+         */
+
+        razorpay.open();
+
+
+    } catch (error) {
+
+        console.error(
+            'Payment initialization error:',
+            error
+        );
+
+        submitBtn.disabled = false;
+
+        submitBtn.innerHTML =
+            originalHTML;
+
+        alert(
+            error.message ||
+            'Unable to start payment. Please try again.'
+        );
+    }
+}
+async function verifyRazorpayPayment(
+    paymentResponse,
+    formData
+) {
+
+    const submitBtn =
+        document.getElementById('registration-form')?.querySelector('.btn-submit');
+
+    try {
+
+        if (submitBtn) {
+
+            submitBtn.disabled = true;
+
+            submitBtn.innerHTML =
+                '<span>VERIFYING PAYMENT...</span>';
+        }
+
+
+        /*
+         * Send Razorpay response to Vercel
+         */
+
+        const response = await fetch(
+            '/api/verify-payment',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    razorpay_order_id:
+                        paymentResponse.razorpay_order_id,
+
+                    razorpay_payment_id:
+                        paymentResponse.razorpay_payment_id,
+
+                    razorpay_signature:
+                        paymentResponse.razorpay_signature
+                })
+            }
+        );
+
+
+        const result =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !result.verified
+        ) {
+
+            throw new Error(
+                result.message ||
+                'Payment verification failed.'
+            );
+        }
+
+
+        console.log(
+            'Payment successfully verified:',
+            result
+        );
+
+
+        /*
+         * Store registration information temporarily.
+         *
+         * Later we can replace this with Supabase/database storage.
+         */
+
+        const registrationData = {
+
+            ...formData,
+
+            orderId:
+                result.orderId,
+
+            paymentId:
+                result.paymentId,
+
+            paymentStatus:
+                'PAID',
+
+            paidAt:
+                new Date().toISOString()
+        };
+
+
+        sessionStorage.setItem(
+            'nischchitLakshyaRegistration',
+            JSON.stringify(registrationData)
+        );
+
+
+        /*
+         * Payment successful
+         */
+
+        window.location.href =
+            '/thank-you.html';
+
+
+    } catch (error) {
+
+        console.error(
+            'Payment verification error:',
+            error
+        );
+
+        if (submitBtn) {
+
+            submitBtn.disabled = false;
+
+            submitBtn.innerHTML =
+                '<span>PAYMENT VERIFICATION FAILED</span>';
+        }
+
+
+        alert(
+            'We could not verify your payment automatically. ' +
+            'Please do not make another payment immediately. ' +
+            'Please contact support with your Payment ID.'
+        );
+    }
 }

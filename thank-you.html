@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Confirmed | Nischchit Lakshya - Ramayan Institute of Trading</title>
+    <meta name="description" content="Thank you for registering for the Nischchit Lakshya 5-Day Trading Workshop.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Hind+Siliguri:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .thank-you-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: radial-gradient(circle at 50% 30%, rgba(212, 175, 55, 0.08), transparent 60%), var(--bg-primary, #0a0b0e);
+        }
+
+        .thank-you-card {
+            max-width: 620px;
+            width: 100%;
+            background: var(--bg-card, #12141a);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 16px;
+            padding: 40px 32px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .success-icon-badge {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 24px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 2px solid #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #22c55e;
+        }
+
+        .success-icon-badge svg {
+            width: 38px;
+            height: 38px;
+        }
+
+        .ty-title {
+            font-family: 'Cinzel', serif;
+            color: #D4AF37;
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .ty-subtitle {
+            color: var(--text-secondary, #94a3b8);
+            font-size: 1.05rem;
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+
+        .receipt-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: left;
+            margin-bottom: 28px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 0.95rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .receipt-row:last-child {
+            border-bottom: none;
+        }
+
+        .receipt-label {
+            color: var(--text-muted, #64748b);
+        }
+
+        .receipt-val {
+            color: var(--text-primary, #f8fafc);
+            font-weight: 600;
+        }
+
+        .next-steps-box {
+            background: rgba(212, 175, 55, 0.06);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+            text-align: left;
+        }
+
+        .next-steps-box h4 {
+            color: #D4AF37;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .next-steps-box p {
+            color: var(--text-secondary, #cbd5e1);
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+
+        .ty-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="thank-you-wrapper">
+        <div class="thank-you-card">
+            <div class="success-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+            </div>
+
+            <h1 class="ty-title">PAYMENT SUCCESSFUL</h1>
+            <p class="ty-subtitle">Welcome to <strong>Nischchit Lakshya 5-Day Trading Workshop</strong>. Your seat has been reserved.</p>
+
+            <div class="receipt-box" id="receipt-details">
+                <div class="receipt-row">
+                    <span class="receipt-label">Student Name</span>
+                    <span class="receipt-val" id="r-name">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Email</span>
+                    <span class="receipt-val" id="r-email">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Phone</span>
+                    <span class="receipt-val" id="r-phone">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Payment ID</span>
+                    <span class="receipt-val" id="r-payment-id">-</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Status</span>
+                    <span class="receipt-val" style="color:#22c55e;">PAID ✓</span>
+                </div>
+            </div>
+
+            <div class="next-steps-box">
+                <h4>What Happens Next?</h4>
+                <p>✓ You will receive a WhatsApp message and email confirmation shortly.</p>
+                <p>✓ Webinar joining link & instructions will be shared 24 hours prior to the batch.</p>
+            </div>
+
+            <div class="ty-actions">
+                <a href="index.html" class="btn btn-gold">Return to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        try {
+            const rawData = sessionStorage.getItem('nischchitLakshyaRegistration');
+            if (rawData) {
+                const data = JSON.parse(rawData);
+                if (data.fullName) document.getElementById('r-name').textContent = data.fullName;
+                if (data.email) document.getElementById('r-email').textContent = data.email;
+                if (data.phone) document.getElementById('r-phone').textContent = data.phone;
+                if (data.paymentId) document.getElementById('r-payment-id').textContent = data.paymentId;
+            }
+        } catch (e) {
+            console.warn('Session data read error', e);
+        }
+    </script>
+</body>
+
+</html>
