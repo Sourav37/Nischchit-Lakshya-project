@@ -361,7 +361,7 @@ html[data-theme="light"] .moon-icon {
 .brand-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .logo-icon {
@@ -436,7 +436,7 @@ html[data-theme="light"] .moon-icon {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .hamburger-btn {
@@ -495,7 +495,7 @@ html[data-theme="light"] .moon-icon {
    5. HERO SECTION
    -------------------------------------------------------------------------- */
 .hero-section {
-    padding: 110px 0 45px 0;
+    padding: 135px 0 45px 0;
     position: relative;
     overflow: hidden;
 }
@@ -1566,7 +1566,7 @@ html[data-theme="light"] .countdown-timer-wrapper {
 .timer-number {
     display: block;
     font-family: var(--font-heading);
-    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    font-size: clamp(1.3rem, 2.5vw, 1.8rem);
     font-weight: 900;
     color: #FFFFFF;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
@@ -2337,6 +2337,34 @@ font-size: 0.9rem;
 }
 
 @media (max-width: 480px) {
+    .header-container {
+        padding: 0px 15px;
+    }
+
+    .brand-title {
+        font-style: 16px;
+    }
+
+    .brand-sub {
+        font-size: 8px;
+    }
+
+    .trust-item {
+        align-items: start;
+    }
+
+    .trust-text {
+        text-align: left;
+    }
+
+    .trust-text strong {
+        font-size: 13px;
+    }
+
+    .countdown-timer-wrapper {
+        padding: 18px 20px;
+    }
+
     .hero-title {
         font-size: clamp(1.3rem, 7vw, 1.7rem);
         letter-spacing: 1px;
@@ -2370,6 +2398,10 @@ font-size: 0.9rem;
         font-size: 0.82rem;
     }
 
+    .about-content-box {
+        padding: 22px 24px;
+    }
+
     .badge-lbl {
         font-size: 0.68rem;
     }
@@ -2401,6 +2433,11 @@ font-size: 0.9rem;
         width: 280px;
         height: 280px;
     }
+
+    .form-group select {
+        font-size: 14px;
+    }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
