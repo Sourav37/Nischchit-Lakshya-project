@@ -8,7 +8,6 @@ const razorpay = new Razorpay({
 module.exports = async (req, res) => {
 
     if (req.method !== 'POST') {
-
         return res.status(405).json({
             success: false,
             message: 'Method not allowed'
@@ -27,10 +26,9 @@ module.exports = async (req, res) => {
             consent
         } = req.body || {};
 
-
-        /*
-         * Server-side validation
-         */
+        /* -------------------------------------------------------------
+           Basic server-side validation
+           ------------------------------------------------------------- */
 
         if (
             !fullName ||
@@ -38,98 +36,64 @@ module.exports = async (req, res) => {
             !phone ||
             !tradingExperience ||
             !learningGoal ||
-            !consent
+            consent !== true
         ) {
-
             return res.status(400).json({
                 success: false,
-                message:
-                    'Required registration information is missing.'
+                message: 'Required registration information is missing.'
             });
         }
 
-
-        /*
-         * IMPORTANT
-         *
-         * ₹369 = 36900 paise
-         *
-         * Amount is controlled by SERVER.
-         */
+        /* -------------------------------------------------------------
+           Workshop price
+           ₹369 = 36900 paise
+           ------------------------------------------------------------- */
 
         const amount = 36900;
 
+        const receipt = `NL-${Date.now()}`;
 
-        /*
-         * Unique receipt
-         */
+        /* -------------------------------------------------------------
+           Create Razorpay Order
+           ------------------------------------------------------------- */
 
-        const receipt =
-            `NL-${Date.now()}`;
+        const order = await razorpay.orders.create({
+            amount,
+            currency: 'INR',
+            receipt,
 
+            notes: {
+                fullName: String(fullName).substring(0, 100),
+                email: String(email).substring(0, 100),
+                phone: String(phone).substring(0, 20),
 
-        /*
-         * Create Razorpay Order
-         */
+                tradingExperience:
+                    String(tradingExperience).substring(0, 50),
 
-        const order =
-            await razorpay.orders.create({
+                learningGoal:
+                    String(learningGoal).substring(0, 100),
 
-                amount: amount,
-
-                currency: 'INR',
-
-                receipt: receipt,
-
-                notes: {
-
-                    fullName:
-                        String(fullName).substring(0, 100),
-
-                    email:
-                        String(email).substring(0, 100),
-
-                    phone:
-                        String(phone).substring(0, 20),
-
-                    tradingExperience:
-                        String(tradingExperience).substring(0, 50),
-
-                    learningGoal:
-                        String(learningGoal).substring(0, 100),
-
-                    contactMethod:
-                        String(contactMethod || 'WhatsApp')
-                            .substring(0, 30)
-                }
-            });
-
-
-        /*
-         * Send only public information
-         * back to browser.
-         */
-
-        return res.status(200).json({
-
-            success: true,
-
-            keyId:
-                process.env.RAZORPAY_KEY_ID,
-
-            order: {
-
-                id:
-                    order.id,
-
-                amount:
-                    order.amount,
-
-                currency:
-                    order.currency
+                contactMethod:
+                    String(contactMethod || 'WhatsApp')
+                        .substring(0, 30)
             }
         });
 
+        /* -------------------------------------------------------------
+           Send only safe information to frontend
+           ------------------------------------------------------------- */
+
+        return res.status(200).json({
+            success: true,
+
+            keyId: process.env.RAZORPAY_KEY_ID,
+
+            order: {
+                id: order.id,
+                amount: order.amount,
+                currency: order.currency
+            }
+        });
 
     } catch (error) {
 
@@ -139,11 +103,8 @@ module.exports = async (req, res) => {
         );
 
         return res.status(500).json({
-
             success: false,
-
-            message:
-                'Unable to create payment order.'
+            message: 'Unable to create payment order.'
         });
     }
 };
