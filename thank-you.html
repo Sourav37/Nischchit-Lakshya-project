@@ -177,15 +177,21 @@
     <script>
         try {
             const rawData = sessionStorage.getItem('nischchitLakshyaRegistration');
-            if (rawData) {
+            if (!rawData) {
+                // No session data — user opened this page directly, send them back
+                window.location.replace('index.html');
+            } else {
                 const data = JSON.parse(rawData);
                 if (data.fullName) document.getElementById('r-name').textContent = data.fullName;
                 if (data.email) document.getElementById('r-email').textContent = data.email;
                 if (data.phone) document.getElementById('r-phone').textContent = data.phone;
                 if (data.paymentId) document.getElementById('r-payment-id').textContent = data.paymentId;
+                // Clear session after reading so it can't be replayed
+                sessionStorage.removeItem('nischchitLakshyaRegistration');
             }
         } catch (e) {
             console.warn('Session data read error', e);
+            window.location.replace('index.html');
         }
     </script>
 </body>

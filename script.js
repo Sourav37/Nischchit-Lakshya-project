@@ -289,6 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         inputs.forEach(input => {
 
+            /* Skip inputs that have no id (e.g. radio buttons) */
+            if (!input.id) return;
+
             input.addEventListener(
                 'input',
                 () => {
@@ -304,6 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
         });
+
+        /* Handle contactMethod radio group separately by name */
+        regForm
+            .querySelectorAll('input[name="contactMethod"]')
+            .forEach(radio => {
+                radio.addEventListener('change', () => {
+                    clearError('contactMethod');
+                });
+            });
 
     }
 
@@ -1051,29 +1063,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (distance <= 0) {
 
-            document
-                .querySelectorAll('.timer-days')
-                .forEach(element => {
-                    element.textContent = '00';
+            ['timer-days', 'timer-hours', 'timer-minutes', 'timer-seconds'].forEach(cls => {
+                document.querySelectorAll('.' + cls).forEach(el => {
+                    el.textContent = '00';
                 });
+            });
 
-            document
-                .querySelectorAll('.timer-hours')
-                .forEach(element => {
-                    element.textContent = '00';
+            /* Show "Workshop has started" message if a fixed date was set */
+            if (WORKSHOP_CONFIG.fixedDate) {
+                document.querySelectorAll('.countdown-subtitle, #hero-countdown-subtitle, [data-workshop-countdown-subtitle]').forEach(el => {
+                    el.textContent = '🎓 This batch has already started — stay tuned for the next one!';
                 });
-
-            document
-                .querySelectorAll('.timer-minutes')
-                .forEach(element => {
-                    element.textContent = '00';
-                });
-
-            document
-                .querySelectorAll('.timer-seconds')
-                .forEach(element => {
-                    element.textContent = '00';
-                });
+            }
 
             return;
 
@@ -2019,11 +2020,10 @@ async function proceedToPayment(formData) {
         );
 
 
-        submitBtn.disabled =
-            false;
-
-        submitBtn.innerHTML =
-            originalHTML;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHTML;
+        }
 
 
         alert(
@@ -2203,6 +2203,12 @@ async function verifyRazorpayPayment(
         /* ---------------------------------------------------------------------
            Payment successful
            --------------------------------------------------------------------- */
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<span>✓ PAYMENT VERIFIED — REDIRECTING...</span>';
+        }
 
         window.location.href =
             '/thank-you.html';

@@ -63,12 +63,12 @@ module.exports = async (req, res) => {
 
         const receivedSignatureBuffer = Buffer.from(
             razorpay_signature,
-            "utf8"
+            "hex"
         );
 
         const generatedSignatureBuffer = Buffer.from(
             generatedSignature,
-            "utf8"
+            "hex"
         );
 
         if (
@@ -151,12 +151,15 @@ module.exports = async (req, res) => {
         // 8. Verify payment status
         // -----------------------------------------
 
-        if (payment.status !== "captured") {
+        if (
+            payment.status !== "captured" &&
+            payment.status !== "authorized"
+        ) {
             return res.status(400).json({
                 success: false,
                 verified: false,
                 status: payment.status,
-                message: `Payment is not captured. Current status: ${payment.status}`
+                message: `Payment is not in a valid state. Current status: ${payment.status}`
             });
         }
 

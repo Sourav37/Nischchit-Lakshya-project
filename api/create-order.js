@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
             !phone ||
             !tradingExperience ||
             !learningGoal ||
-            consent !== true
+            (consent !== true && consent !== 'true')
         ) {
             return res.status(400).json({
                 success: false,
