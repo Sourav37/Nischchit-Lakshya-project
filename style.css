@@ -2374,14 +2374,32 @@ font-size: 0.9rem;
         font-size: 0.68rem;
     }
 
+    .trainer-card {
+        gap: 20px;
+        padding: 20px;
+    }
+
     .badge-top-right {
-        top: 10px;
-        right: 10px;
+        right: -10px;
     }
 
     .badge-bottom-left {
-        bottom: 10px;
-        left: 10px;
+        bottom: auto;
+        left: -10px;
+        top: -40px;
+    }
+
+    .floating-timer-widget {
+        right: 0;
+        left: 0;
+        margin: auto;
+        width: max-content;
+        text-align: center;
+    }
+
+    .trainer-avatar-placeholder {
+        width: 280px;
+        height: 280px;
     }
 }
 
