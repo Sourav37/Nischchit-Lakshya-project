@@ -4,6 +4,6 @@
   "private": true,
   "description": "Nischchit Lakshya 5-Day Trading Workshop",
   "dependencies": {
-    "razorpay": "^2.9.4"
+    "razorpay": "^2.9.8"
   }
 }
