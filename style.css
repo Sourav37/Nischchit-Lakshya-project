@@ -629,11 +629,11 @@ html[data-theme="light"] .moon-icon {
 }
 
 .price-original {
-    text-decoration: line-through #ff3b30 3px;
+    text-decoration: line-through #ff3b30 1.5px;
     color: #a0a0a0;
-    font-size: 1.4rem;
-    font-weight: 700;
-    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 600;
+    font-family: var(--font-subhead);
 }
 
 .price-divider {
